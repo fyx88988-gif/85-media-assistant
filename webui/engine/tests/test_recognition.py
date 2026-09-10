@@ -124,6 +124,7 @@ def test_douyin_fresh_cookie_failure_uses_media_already_read_by_isolated_browser
             "Title": "浏览器读取到的公开作品",
             "Caption": "公开作品说明",
             "Author": "公开作者",
+            "UserAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/140 Safari/537.36",
             "Kind": "Video",
             "Images": ["https://cdn.example/cover.jpg"],
             "Videos": ["https://cdn.example/video.mp4"],
@@ -138,6 +139,7 @@ def test_douyin_fresh_cookie_failure_uses_media_already_read_by_isolated_browser
     assert item.description == "公开作品说明"
     assert item.thumbnail_url == "https://cdn.example/cover.jpg"
     assert item.formats[0].preview_url == "https://cdn.example/video.mp4"
+    assert item.formats[0].request_headers["User-Agent"].startswith("Mozilla/5.0 (Macintosh;")
     assert refresher.urls == ["https://v.douyin.com/example/"]
     assert len(runner.calls) == 1
 

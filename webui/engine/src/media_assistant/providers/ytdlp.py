@@ -90,8 +90,9 @@ class YtDlpProvider:
 
     def _map_douyin_browser_media(self, url: str, payload: dict[str, Any]) -> WorkItem:
         canonical_url = _clean_text(payload.get("Url")) or url
+        session_user_agent = _clean_text(payload.get("UserAgent"))
         request_headers = {
-            "User-Agent": (
+            "User-Agent": session_user_agent or (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                 "AppleWebKit/537.36 Chrome/140.0.0.0 Safari/537.36"
             ),

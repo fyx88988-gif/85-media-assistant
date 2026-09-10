@@ -14,7 +14,7 @@ import httpx
 from .app import create_app
 from .config import AppConfig, PRODUCT_ID
 from .downloads import DownloadService
-from .douyin_session import WindowsDouyinSessionRefresher
+from .douyin_session import ChromiumDouyinSessionRefresher, WindowsDouyinSessionRefresher
 from .events import EventBus
 from .items import ItemService
 from .install_layout import InstallLayout
@@ -241,12 +241,17 @@ def main(argv: list[str] | None = None) -> None:
         helper_script = root / "webui" / "engine" / "scripts" / "Refresh-DouyinSession.ps1"
         douyin_module = root / "src" / "VideoDownloader.Douyin.psm1"
     douyin_session_root = data_root / "douyin-session"
-    session_refresher = WindowsDouyinSessionRefresher(
-        helper_script=helper_script,
-        module_path=douyin_module,
-        session_root=douyin_session_root,
-        runner=process_runner,
-    )
+    if sys.platform == "darwin":
+        session_refresher = ChromiumDouyinSessionRefresher(
+            session_root=douyin_session_root,
+        )
+    else:
+        session_refresher = WindowsDouyinSessionRefresher(
+            helper_script=helper_script,
+            module_path=douyin_module,
+            session_root=douyin_session_root,
+            runner=process_runner,
+        )
     provider = YtDlpProvider(yt_dlp, process_runner, session_refresher=session_refresher)
     items = ItemService(provider, events)
     downloads = DownloadService(
