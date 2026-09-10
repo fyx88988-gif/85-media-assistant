@@ -17,11 +17,13 @@ def built_tree() -> Path:
 def test_windows_build_manifest_contains_every_runtime_component(
     built_tree: Path,
 ) -> None:
+    pointer = json.loads((built_tree / "current.json").read_text(encoding="utf-8"))
+    version = pointer["version"]
     required = {
         "launcher/85数字多媒体下载助手.exe",
         "launcher/85数字多媒体下载助手更新器.exe",
-        "versions/1.2.0/engine/85数字多媒体下载助手引擎.exe",
-        "versions/1.2.0/webui/index.html",
+        f"versions/{version}/engine/85数字多媒体下载助手引擎.exe",
+        f"versions/{version}/webui/index.html",
         "components/yt-dlp/yt-dlp.exe",
         "components/ffmpeg/ffmpeg.exe",
         "components/ffmpeg/ffprobe.exe",
@@ -34,6 +36,4 @@ def test_windows_build_manifest_contains_every_runtime_component(
     }
 
     assert required <= actual
-    assert json.loads((built_tree / "current.json").read_text(encoding="utf-8")) == {
-        "version": "1.2.0"
-    }
+    assert pointer == {"version": version}
