@@ -12,7 +12,7 @@
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
-  <false/>
+  <true/>
   <key>ProcessType</key>
   <string>Background</string>
 </dict>

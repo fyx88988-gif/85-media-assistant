@@ -37,6 +37,10 @@ Name: "{group}\{#AppName}"; Filename: "{app}\launcher\{#LauncherName}"
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "85DigitalMediaAssistant"; ValueData: """{app}\launcher\{#LauncherName}"" --background"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Classes\mediaassistant85"; ValueType: string; ValueData: "URL:85数字多媒体下载助手"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\mediaassistant85"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\mediaassistant85\DefaultIcon"; ValueType: string; ValueData: "{app}\launcher\{#LauncherName},0"
+Root: HKCU; Subkey: "Software\Classes\mediaassistant85\shell\open\command"; ValueType: string; ValueData: """{app}\launcher\{#LauncherName}"" ""%1"""
 
 [Run]
 Filename: "{app}\launcher\{#LauncherName}"; Description: "打开 {#AppName}"; Flags: nowait postinstall skipifsilent

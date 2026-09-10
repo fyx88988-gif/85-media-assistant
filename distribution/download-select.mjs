@@ -16,3 +16,13 @@ export function selectDownload({ platform = '', userAgent = '' } = {}) {
   }
   return { target: 'unsupported', title: '当前系统暂不支持', asset: '' }
 }
+
+export function buildEntryActions({ repository, platform = '', userAgent = '' }) {
+  const selected = selectDownload({ platform, userAgent })
+  const releaseRoot = `https://github.com/${repository}/releases/latest/download/`
+  return {
+    openUrl: 'mediaassistant85://open',
+    downloadTitle: selected.title,
+    downloadUrl: selected.asset ? releaseRoot + encodeURIComponent(selected.asset) : '',
+  }
+}

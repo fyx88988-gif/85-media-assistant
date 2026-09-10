@@ -5,8 +5,11 @@ import pytest
 
 from media_assistant.bootstrap import (
     current_engine_command,
+    ensure_engine_running,
     install_default_update_channel,
     pending_update_command,
+    parse_args,
+    supervise_engine,
 )
 from media_assistant.install_layout import InstallLayout
 from media_assistant.updater import write_pointer
@@ -74,3 +77,67 @@ def test_bootstrap_applies_a_staged_update_before_starting_engine(tmp_path: Path
         "--install-root",
         str(layout.install_root),
     ]
+
+
+def test_ensure_engine_running_starts_the_selected_engine_when_health_check_fails(
+    tmp_path: Path,
+) -> None:
+    layout = InstallLayout.for_root(tmp_path / "app", tmp_path / "data")
+    write_pointer(layout.current_pointer, "1.2.6")
+    suffix = ".exe" if os.name == "nt" else ""
+    executable = (
+        layout.versions_dir
+        / "1.2.6"
+        / "engine"
+        / f"85数字多媒体下载助手引擎{suffix}"
+    )
+    executable.parent.mkdir(parents=True)
+    executable.touch()
+    started: list[list[str]] = []
+
+    ready = ensure_engine_running(
+        layout,
+        probe=lambda: False,
+        starter=lambda command: started.append(list(command)),
+        waiter=lambda: True,
+    )
+
+    assert ready is True
+    assert started == [current_engine_command(layout)]
+
+
+def test_background_supervisor_restarts_engine_after_a_later_health_failure(
+    tmp_path: Path,
+) -> None:
+    layout = InstallLayout.for_root(tmp_path / "app", tmp_path / "data")
+    write_pointer(layout.current_pointer, "1.2.6")
+    suffix = ".exe" if os.name == "nt" else ""
+    executable = (
+        layout.versions_dir
+        / "1.2.6"
+        / "engine"
+        / f"85数字多媒体下载助手引擎{suffix}"
+    )
+    executable.parent.mkdir(parents=True)
+    executable.touch()
+    health = iter([False, True, False])
+    started: list[list[str]] = []
+
+    supervise_engine(
+        layout,
+        probe=lambda: next(health),
+        starter=lambda command: started.append(list(command)),
+        waiter=lambda: True,
+        sleeper=lambda _: None,
+        poll_interval=0,
+        max_cycles=3,
+    )
+
+    assert started == [current_engine_command(layout), current_engine_command(layout)]
+
+
+def test_bootstrap_accepts_the_shared_browser_launch_protocol() -> None:
+    arguments = parse_args(["mediaassistant85://open"])
+
+    assert arguments.background is False
+    assert arguments.launch_target == "mediaassistant85://open"

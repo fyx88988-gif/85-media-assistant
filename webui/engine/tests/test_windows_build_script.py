@@ -20,3 +20,14 @@ def test_windows_installer_has_no_desktop_icon_and_autostarts_in_background() ->
     assert "desktopicon" not in installer
     assert "{autodesktop}" not in installer
     assert 'ValueData: """{app}\\launcher\\{#LauncherName}"" --background' in installer
+
+
+def test_windows_installer_registers_the_shared_browser_launch_protocol() -> None:
+    repository_root = Path(__file__).resolve().parents[3]
+    installer = (
+        repository_root / "build" / "installer" / "windows" / "85-media-assistant.iss"
+    ).read_text(encoding="utf-8")
+
+    assert 'Subkey: "Software\\Classes\\mediaassistant85"' in installer
+    assert 'ValueName: "URL Protocol"' in installer
+    assert 'Subkey: "Software\\Classes\\mediaassistant85\\shell\\open\\command"' in installer

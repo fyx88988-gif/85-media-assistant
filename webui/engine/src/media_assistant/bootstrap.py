@@ -5,11 +5,13 @@ import subprocess
 import sys
 import time
 import webbrowser
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from .config import PRODUCT_ID
 from .install_layout import InstallLayout
-from .launcher import build_local_url, probe_existing_instance
+from .launcher import AppInstanceLock, build_local_url, probe_existing_instance
 from .processes import start_detached_process
 from .updater import read_pointer
 
@@ -160,6 +162,49 @@ def wait_until_ready(timeout: float = 12.0) -> bool:
     return False
 
 
+def ensure_engine_running(
+    layout: InstallLayout,
+    *,
+    probe: Callable[[], bool] | None = None,
+    starter: Callable[[list[str]], Any] = start_detached_process,
+    waiter: Callable[[], bool] = wait_until_ready,
+) -> bool:
+    """Ensure the selected local engine is healthy, starting it when needed."""
+
+    health_check = probe or (
+        lambda: probe_existing_instance("http://127.0.0.1:8515", PRODUCT_ID)
+    )
+    if health_check():
+        return True
+    starter(current_engine_command(layout))
+    return waiter()
+
+
+def supervise_engine(
+    layout: InstallLayout,
+    *,
+    probe: Callable[[], bool] | None = None,
+    starter: Callable[[list[str]], Any] = start_detached_process,
+    waiter: Callable[[], bool] = wait_until_ready,
+    sleeper: Callable[[float], None] = time.sleep,
+    poll_interval: float = 2.0,
+    max_cycles: int | None = None,
+) -> None:
+    """Keep the local engine available for the current login session."""
+
+    cycles = 0
+    while max_cycles is None or cycles < max_cycles:
+        ensure_engine_running(
+            layout,
+            probe=probe,
+            starter=starter,
+            waiter=waiter,
+        )
+        cycles += 1
+        if max_cycles is None or cycles < max_cycles:
+            sleeper(poll_interval)
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="启动 85数字多媒体下载助手")
     parser.add_argument(
@@ -167,6 +212,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="只启动本地引擎，不自动打开浏览器。",
     )
+    parser.add_argument("launch_target", nargs="?", default="")
     return parser.parse_args(argv)
 
 
@@ -186,13 +232,23 @@ def main(argv: list[str] | None = None) -> None:
                 template,
                 Path(sys.executable).resolve(),
             )
+    if args.background:
+        supervisor_lock = AppInstanceLock(
+            layout.data_root / "background-supervisor.lock"
+        )
+        if not supervisor_lock.acquire():
+            return
+        try:
+            supervise_engine(layout)
+        finally:
+            supervisor_lock.release()
+        return
     url = build_local_url()
     if probe_existing_instance("http://127.0.0.1:8515", PRODUCT_ID):
         if not args.background:
             webbrowser.open(url)
         return
-    start_detached_process(current_engine_command(layout))
-    if not wait_until_ready():
+    if not ensure_engine_running(layout):
         raise RuntimeError("本地引擎启动失败，请从设置中修复安装。")
     if not args.background:
         webbrowser.open(url)

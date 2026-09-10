@@ -1,3 +1,4 @@
+import plistlib
 from pathlib import Path
 
 from media_assistant.bootstrap import (
@@ -68,6 +69,36 @@ def test_macos_launcher_runs_as_a_background_accessory() -> None:
         / "macos"
         / "com.85digital.media-assistant.plist"
     ).read_text(encoding="utf-8")
+
+
+def test_macos_launch_agent_keeps_the_background_supervisor_alive() -> None:
+    repository_root = Path(__file__).resolve().parents[3]
+    template = (
+        repository_root
+        / "build"
+        / "installer"
+        / "macos"
+        / "com.85digital.media-assistant.plist"
+    ).read_text(encoding="utf-8")
+    rendered = render_macos_launch_agent(
+        template,
+        Path("/Applications/85数字多媒体下载助手.app/Contents/MacOS/85数字多媒体下载助手"),
+    )
+    payload = plistlib.loads(rendered.encode("utf-8"))
+
+    assert payload["KeepAlive"] is True
+    assert payload["RunAtLoad"] is True
+    assert payload["ProgramArguments"][-1] == "--background"
+
+
+def test_macos_bundle_registers_the_shared_browser_launch_protocol() -> None:
+    repository_root = Path(__file__).resolve().parents[3]
+    script = (repository_root / "build" / "Build-LocalWebUI-macOS.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "CFBundleURLTypes" in script
+    assert "mediaassistant85" in script
 
 
 def test_macos_build_scripts_use_unix_line_endings() -> None:
