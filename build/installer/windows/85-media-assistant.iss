@@ -29,19 +29,14 @@ OutputBaseFilename=85数字多媒体下载助手-Setup-{#AppVersion}
 UninstallDisplayName={#AppName}
 DisableProgramGroupPage=yes
 
-[Tasks]
-Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加选项："; Flags: unchecked
-Name: "autostart"; Description: "登录后静默启动本地服务"; GroupDescription: "附加选项："; Flags: checkedonce
-
 [Files]
 Source: "{#SourceRoot}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\launcher\{#LauncherName}"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\launcher\{#LauncherName}"; Tasks: desktopicon
 
 [Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "85DigitalMediaAssistant"; ValueData: """{app}\launcher\{#LauncherName}"""; Flags: uninsdeletevalue; Tasks: autostart
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "85DigitalMediaAssistant"; ValueData: """{app}\launcher\{#LauncherName}"" --background"; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\launcher\{#LauncherName}"; Description: "打开 {#AppName}"; Flags: nowait postinstall skipifsilent

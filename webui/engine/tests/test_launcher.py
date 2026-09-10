@@ -19,9 +19,9 @@ from media_assistant.launcher import (
 
 
 def test_launcher_uses_the_fixed_local_webui_address() -> None:
-    url = build_local_url("safe token")
+    url = build_local_url()
 
-    assert url == "http://127.0.0.1:8515/?session=safe+token"
+    assert url == "http://127.0.0.1:8515/"
 
 
 def test_launcher_does_not_reuse_a_foreign_service(monkeypatch) -> None:

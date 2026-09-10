@@ -10,7 +10,6 @@ from pathlib import Path
 from .config import PRODUCT_ID
 from .install_layout import InstallLayout
 from .launcher import build_local_url, probe_existing_instance
-from .local_session import LocalSessionAuthority
 from .processes import start_detached_process
 from .updater import read_pointer
 
@@ -187,10 +186,7 @@ def main(argv: list[str] | None = None) -> None:
                 template,
                 Path(sys.executable).resolve(),
             )
-    authority = LocalSessionAuthority.load_or_create(
-        layout.settings_dir / "local-session.key"
-    )
-    url = build_local_url(authority.issue())
+    url = build_local_url()
     if probe_existing_instance("http://127.0.0.1:8515", PRODUCT_ID):
         if not args.background:
             webbrowser.open(url)

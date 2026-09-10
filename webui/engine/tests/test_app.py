@@ -87,6 +87,20 @@ def test_root_serves_embedded_webui(tmp_path: Path) -> None:
     assert "85 WebUI" in response.text
 
 
+def test_opening_the_fixed_local_url_bootstraps_a_browser_session(tmp_path: Path) -> None:
+    authority = LocalSessionAuthority.load_or_create(tmp_path / "local-session.key")
+    client = make_client(tmp_path, session_authority=authority)
+
+    page = client.get("/")
+    accepted = client.post("/api/v1/test-write")
+
+    assert "85_local_session=" in page.headers["set-cookie"]
+    assert "HttpOnly" in page.headers["set-cookie"]
+    assert "SameSite=strict" in page.headers["set-cookie"]
+    assert accepted.status_code == 200
+    assert accepted.json() == {"ok": True}
+
+
 def test_root_serves_bundled_frontend_assets(tmp_path: Path) -> None:
     response = make_client(tmp_path).get("/assets/app.js")
 

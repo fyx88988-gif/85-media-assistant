@@ -6,7 +6,6 @@ import threading
 import webbrowser
 from pathlib import Path
 from typing import BinaryIO
-from urllib.parse import urlencode
 
 import uvicorn
 import httpx
@@ -120,8 +119,8 @@ class AppInstanceLock:
             self._handle = None
 
 
-def build_local_url(session_token: str) -> str:
-    return f"http://127.0.0.1:{LOCAL_PORT}/?{urlencode({'session': session_token})}"
+def build_local_url() -> str:
+    return f"http://127.0.0.1:{LOCAL_PORT}/"
 
 
 def probe_existing_instance(
@@ -204,15 +203,17 @@ def main(argv: list[str] | None = None) -> None:
         data_root / "settings" / "local-session.key"
     )
     token = authority.issue()
-    url = build_local_url(token)
+    url = build_local_url()
     instance_lock = AppInstanceLock(data_root / "app-instance.lock")
     if not instance_lock.acquire():
         if probe_existing_instance("http://127.0.0.1:8515", PRODUCT_ID):
-            webbrowser.open(url)
+            if not arguments.no_browser:
+                webbrowser.open(url)
             return
         raise PortConflictError("本地端口 8515 已被其他程序占用。")
     if probe_existing_instance("http://127.0.0.1:8515", PRODUCT_ID):
-        webbrowser.open(url)
+        if not arguments.no_browser:
+            webbrowser.open(url)
         instance_lock.release()
         return
     require_available_local_port()

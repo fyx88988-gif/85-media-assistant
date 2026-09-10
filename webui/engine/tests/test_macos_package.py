@@ -54,6 +54,22 @@ def test_macos_build_script_bundles_all_runtime_parts() -> None:
         assert required in script
 
 
+def test_macos_launcher_runs_as_a_background_accessory() -> None:
+    repository_root = Path(__file__).resolve().parents[3]
+    script = (repository_root / "build" / "Build-LocalWebUI-macOS.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert "<key>LSUIElement</key><true/>" in script
+    assert "<string>--background</string>" in (
+        repository_root
+        / "build"
+        / "installer"
+        / "macos"
+        / "com.85digital.media-assistant.plist"
+    ).read_text(encoding="utf-8")
+
+
 def test_macos_build_scripts_use_unix_line_endings() -> None:
     repository_root = Path(__file__).resolve().parents[3]
     scripts = (

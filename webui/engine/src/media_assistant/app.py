@@ -278,7 +278,22 @@ def create_app(
                 return {"jobs": download_service.list_jobs()}
 
     @app.get("/", response_class=HTMLResponse)
-    def root() -> str:
-        return (config.static_dir / "index.html").read_text(encoding="utf-8")
+    def root() -> HTMLResponse:
+        if config.session_authority is None:
+            session_token = config.session_token
+        else:
+            session_token = config.session_authority.issue()
+        response = HTMLResponse(
+            (config.static_dir / "index.html").read_text(encoding="utf-8"),
+            headers={"Cache-Control": "no-store"},
+        )
+        response.set_cookie(
+            key="85_local_session",
+            value=session_token,
+            httponly=True,
+            samesite="strict",
+            path="/",
+        )
+        return response
 
     return app
