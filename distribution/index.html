@@ -29,11 +29,11 @@
       <h1>一次安装，之后在浏览器里<span>直接使用</span></h1>
       <p class="lead">识别、预览、选择与保存都由当前电脑完成。程序不会上传你的媒体、登录信息或下载记录，也不需要付费云服务器。</p>
       <div class="actions">
-        <a id="open-tool" class="button" href="mediaassistant85://open">打开网页版工具</a>
+        <a id="open-tool" class="button" href="http://127.0.0.1:8515/">打开网页版工具</a>
         <a id="recommended" class="button secondary" href="#">正在识别当前系统…</a>
       </div>
       <p class="hint" id="system-hint">已安装可直接打开；每台电脑只需首次安装一次本地引擎</p>
-      <p class="recovery">网页显示“拒绝连接”？点击“打开网页版工具”即可启动或修复本地引擎。</p>
+      <p class="recovery">网页显示“拒绝连接”？返回这里，点击<a id="repair-tool" href="mediaassistant85://open">“启动或修复本地引擎”</a>。</p>
       <section class="promise">
         <article class="card"><div class="icon">◉</div><h2>固定本地入口</h2><p>安装后直接在浏览器打开统一的本机地址，不创建桌面图标，也不依赖远程服务。</p></article>
         <article class="card"><div class="icon">↻</div><h2>组件全部内置</h2><p>本地引擎、yt-dlp、FFmpeg 与 FFprobe 随安装包提供，不再单独安装插件。</p></article>
@@ -76,6 +76,7 @@
       userAgent: navigator.userAgent || '',
     })
     document.querySelector('#open-tool').href = entry.openUrl
+    document.querySelector('#repair-tool').href = entry.repairUrl
     const recommended = document.querySelector('#recommended')
     recommended.textContent = entry.downloadTitle
     if (selected.target === 'unsupported') {

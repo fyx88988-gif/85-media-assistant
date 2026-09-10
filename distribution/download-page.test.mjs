@@ -10,7 +10,8 @@ assert.equal(
 assert.deepEqual(
   buildEntryActions({ repository: 'fyx88988-gif/85-media-assistant', platform: 'Win32', userAgent: 'Windows NT 10.0' }),
   {
-    openUrl: 'mediaassistant85://open',
+    openUrl: 'http://127.0.0.1:8515/',
+    repairUrl: 'mediaassistant85://open',
     downloadTitle: '下载 Windows 版',
     downloadUrl: 'https://github.com/fyx88988-gif/85-media-assistant/releases/latest/download/media-assistant-windows-x64-setup.exe',
   },
@@ -33,4 +34,5 @@ assert.doesNotMatch(html, /从桌面图标进入|桌面入口会/)
 assert.match(html, /不创建桌面图标/)
 assert.match(html, /http:\/\/127\.0\.0\.1:8515/)
 assert.match(html, /id="open-tool"/)
+assert.match(html, /id="repair-tool"/)
 assert.match(html, /启动或修复本地引擎/)

@@ -21,7 +21,8 @@ export function buildEntryActions({ repository, platform = '', userAgent = '' })
   const selected = selectDownload({ platform, userAgent })
   const releaseRoot = `https://github.com/${repository}/releases/latest/download/`
   return {
-    openUrl: 'mediaassistant85://open',
+    openUrl: 'http://127.0.0.1:8515/',
+    repairUrl: 'mediaassistant85://open',
     downloadTitle: selected.title,
     downloadUrl: selected.asset ? releaseRoot + encodeURIComponent(selected.asset) : '',
   }
