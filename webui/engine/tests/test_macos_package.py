@@ -52,3 +52,14 @@ def test_macos_build_script_bundles_all_runtime_parts() -> None:
         "Contents/Resources/versions",
     ):
         assert required in script
+
+
+def test_macos_build_scripts_use_unix_line_endings() -> None:
+    repository_root = Path(__file__).resolve().parents[3]
+    scripts = (
+        repository_root / "build" / "Build-LocalWebUI-macOS.sh",
+        repository_root / "build" / "installer" / "macos" / "build-dmg.sh",
+    )
+
+    for script in scripts:
+        assert b"\r\n" not in script.read_bytes(), f"{script} must use LF line endings"
