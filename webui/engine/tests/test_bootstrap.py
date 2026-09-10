@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -14,11 +15,12 @@ from media_assistant.updater import write_pointer
 def test_bootstrap_starts_the_engine_selected_by_current_pointer(tmp_path: Path) -> None:
     layout = InstallLayout.for_root(tmp_path / "app", tmp_path / "data")
     write_pointer(layout.current_pointer, "1.2.0")
+    suffix = ".exe" if os.name == "nt" else ""
     executable = (
         layout.versions_dir
         / "1.2.0"
         / "engine"
-        / "85数字多媒体下载助手引擎.exe"
+        / f"85数字多媒体下载助手引擎{suffix}"
     )
     executable.parent.mkdir(parents=True)
     executable.touch()

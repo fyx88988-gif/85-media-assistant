@@ -1,3 +1,4 @@
+import os
 import socket
 from pathlib import Path
 
@@ -103,7 +104,8 @@ def test_launcher_schedules_one_delayed_update_check(tmp_path: Path) -> None:
 
 def test_launcher_prefers_the_active_versioned_component(tmp_path: Path) -> None:
     install_root = tmp_path / "app"
-    direct = install_root / "components" / "yt-dlp" / "yt-dlp.exe"
+    suffix = ".exe" if os.name == "nt" else ""
+    direct = install_root / "components" / "yt-dlp" / f"yt-dlp{suffix}"
     direct.parent.mkdir(parents=True)
     direct.touch()
     versioned = (
@@ -112,7 +114,7 @@ def test_launcher_prefers_the_active_versioned_component(tmp_path: Path) -> None
         / "yt-dlp"
         / "versions"
         / "2026.9.10"
-        / "yt-dlp.exe"
+        / f"yt-dlp{suffix}"
     )
     versioned.parent.mkdir(parents=True)
     versioned.touch()

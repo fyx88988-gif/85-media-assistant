@@ -1,9 +1,15 @@
 import asyncio
+import os
 from pathlib import Path
 from typing import Sequence
 
+import pytest
+
 from media_assistant.douyin_session import WindowsDouyinSessionRefresher
 from media_assistant.processes import ProcessResult
+
+
+pytestmark = pytest.mark.skipif(os.name != "nt", reason="Windows Douyin session helper")
 
 
 class CookieWritingRunner:
