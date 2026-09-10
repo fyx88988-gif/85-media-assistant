@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "media-assistant-local-engine"
+version = "0.1.0"
+description = "85数字多媒体下载助手本地 WebUI 引擎"
+requires-python = ">=3.12"
+dependencies = [
+  "cryptography>=45,<46",
+  "fastapi>=0.116,<1",
+  "httpx>=0.28,<1",
+  "pydantic>=2.11,<3",
+  "uvicorn>=0.35,<1",
+]
+
+[project.scripts]
+media-assistant = "media_assistant.launcher:main"
+media-assistant-updater = "media_assistant.update_runner:main"
+
+[project.optional-dependencies]
+test = [
+  "httpx>=0.28,<1",
+  "pytest>=9,<10",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/media_assistant"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+filterwarnings = [
+  "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+  "ignore:The anyio.abc.BlockingPortal alias is deprecated",
+]

@@ -1,0 +1,251 @@
+name: 发布本地 WebUI
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: webui/frontend/package-lock.json
+      - name: 安装测试依赖
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e "webui/engine[test]" pyinstaller pyyaml
+          npm ci --prefix webui/frontend
+      - name: 测试本地引擎与发布工具
+        env:
+          PYTHONPATH: webui/engine/src
+        run: python -m pytest webui/engine/tests build/release/tests -q
+      - name: 测试并构建统一网页
+        run: |
+          npm test --prefix webui/frontend -- --run
+          npm run build --prefix webui/frontend
+          node distribution/download-page.test.mjs
+      - name: 校验发布工作流
+        run: python -c "import yaml; yaml.safe_load(open('.github/workflows/release-local-webui.yml', encoding='utf-8'))"
+
+  windows-build:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: webui/frontend/package-lock.json
+      - name: 安装构建工具
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e webui/engine pyinstaller
+          npm ci --prefix webui/frontend
+          choco install innosetup -y --no-progress
+      - name: 准备内置媒体组件
+        shell: pwsh
+        run: |
+          $runtime = Join-Path $PWD ".build\runtime\windows"
+          New-Item -ItemType Directory -Force -Path "$runtime\yt-dlp", "$runtime\ffmpeg", "$runtime\deno" | Out-Null
+          Invoke-WebRequest "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -OutFile "$runtime\yt-dlp\yt-dlp.exe"
+          Invoke-WebRequest "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip" -OutFile "$runtime\deno.zip"
+          Expand-Archive "$runtime\deno.zip" "$runtime\deno"
+          Invoke-WebRequest "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile "$runtime\ffmpeg.zip"
+          Expand-Archive "$runtime\ffmpeg.zip" "$runtime\ffmpeg-unpacked"
+          $bin = Get-ChildItem "$runtime\ffmpeg-unpacked" -Directory | Select-Object -First 1
+          Copy-Item "$($bin.FullName)\bin\*" "$runtime\ffmpeg" -Force
+      - name: 构建 Windows 单一安装包
+        shell: pwsh
+        env:
+          UPDATE_PUBLIC_KEY: "${{ vars.MEDIA_ASSISTANT_RELEASE_PUBLIC_KEY }}"
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:UPDATE_PUBLIC_KEY)) { throw "请先设置 MEDIA_ASSISTANT_RELEASE_PUBLIC_KEY 仓库变量。" }
+          $version = $env:GITHUB_REF_NAME.TrimStart("v")
+          & ./build/Build-LocalWebUI.ps1 -Version $version -RuntimeRoot "$PWD\.build\runtime\windows" -OutputRoot "$PWD\dist" -UpdatePublicKey $env:UPDATE_PUBLIC_KEY -ReleaseRepository $env:GITHUB_REPOSITORY
+          Copy-Item "dist\Windows\85数字多媒体下载助手-Setup-$version.exe" "dist\media-assistant-windows-x64-setup.exe"
+          $stage = "$PWD\.build\local-webui\windows-staging"
+          $versionRoot = "$stage\versions\$version"
+          Compress-Archive -Path "$versionRoot\engine" -DestinationPath "dist\media-assistant-windows-x64-engine.zip"
+          Compress-Archive -Path "$versionRoot\webui" -DestinationPath "dist\media-assistant-windows-x64-webui.zip"
+          Compress-Archive -Path "$stage\components\yt-dlp\*" -DestinationPath "dist\media-assistant-windows-x64-yt-dlp.zip"
+          Compress-Archive -Path "$stage\components\ffmpeg\*" -DestinationPath "dist\media-assistant-windows-x64-ffmpeg.zip"
+          Compress-Archive -Path "$stage\components\deno\*" -DestinationPath "dist\media-assistant-windows-x64-deno.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: |
+            dist/media-assistant-windows-x64-setup.exe
+            dist/media-assistant-windows-x64-engine.zip
+            dist/media-assistant-windows-x64-webui.zip
+            dist/media-assistant-windows-x64-yt-dlp.zip
+            dist/media-assistant-windows-x64-ffmpeg.zip
+            dist/media-assistant-windows-x64-deno.zip
+          if-no-files-found: error
+
+  macos-build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: arm64, runner: macos-15 }
+          - { arch: x64, runner: macos-15-intel }
+    runs-on: "${{ matrix.runner }}"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: webui/frontend/package-lock.json
+      - name: 安装构建工具
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e webui/engine pyinstaller
+          brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+          brew list dylibbundler >/dev/null 2>&1 || brew install dylibbundler
+      - name: 准备内置媒体组件
+        run: |
+          runtime="$PWD/.build/runtime/macos-${{ matrix.arch }}"
+          mkdir -p "$runtime/yt-dlp" "$runtime/ffmpeg/lib" "$runtime/deno"
+          curl -fL "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos" -o "$runtime/yt-dlp/yt-dlp"
+          if [[ "${{ matrix.arch }}" == "arm64" ]]; then deno_arch="aarch64"; else deno_arch="x86_64"; fi
+          curl -fL "https://github.com/denoland/deno/releases/latest/download/deno-$deno_arch-apple-darwin.zip" -o "$runtime/deno.zip"
+          unzip -q "$runtime/deno.zip" -d "$runtime/deno"
+          cp "$(command -v ffmpeg)" "$runtime/ffmpeg/ffmpeg"
+          cp "$(command -v ffprobe)" "$runtime/ffmpeg/ffprobe"
+          chmod +x "$runtime/yt-dlp/yt-dlp" "$runtime/ffmpeg/ffmpeg" "$runtime/ffmpeg/ffprobe"
+          dylibbundler -od -b -x "$runtime/ffmpeg/ffmpeg" -d "$runtime/ffmpeg/lib/" -p "@executable_path/lib/"
+          dylibbundler -od -b -x "$runtime/ffmpeg/ffprobe" -d "$runtime/ffmpeg/lib/" -p "@executable_path/lib/"
+      - name: 构建 macOS 应用与 DMG
+        env:
+          VERSION: "${{ github.ref_name }}"
+          TARGET_ARCH: "${{ matrix.arch }}"
+          MEDIA_ASSISTANT_RUNTIME: "${{ github.workspace }}/.build/runtime/macos-${{ matrix.arch }}"
+          MEDIA_ASSISTANT_RELEASE_PUBLIC_KEY: "${{ vars.MEDIA_ASSISTANT_RELEASE_PUBLIC_KEY }}"
+        run: |
+          test -n "$MEDIA_ASSISTANT_RELEASE_PUBLIC_KEY" || { echo "请先设置 MEDIA_ASSISTANT_RELEASE_PUBLIC_KEY 仓库变量。" >&2; exit 2; }
+          export VERSION="${VERSION#v}"
+          export OUTPUT_DIR="$PWD/dist"
+          ./build/installer/macos/build-dmg.sh
+          cp "dist/85数字多媒体下载助手-$VERSION-$TARGET_ARCH.dmg" "dist/media-assistant-macos-$TARGET_ARCH.dmg"
+          version_root="$PWD/.build/local-webui/macos-$TARGET_ARCH/85数字多媒体下载助手.app/Contents/Resources/versions/$VERSION"
+          components="$PWD/.build/local-webui/macos-$TARGET_ARCH/85数字多媒体下载助手.app/Contents/Resources/components"
+          (cd "$version_root" && zip -qry "$GITHUB_WORKSPACE/dist/media-assistant-macos-$TARGET_ARCH-engine.zip" engine)
+          (cd "$version_root" && zip -qry "$GITHUB_WORKSPACE/dist/media-assistant-macos-$TARGET_ARCH-webui.zip" webui)
+          (cd "$components/yt-dlp" && zip -qry "$GITHUB_WORKSPACE/dist/media-assistant-macos-$TARGET_ARCH-yt-dlp.zip" .)
+          (cd "$components/ffmpeg" && zip -qry "$GITHUB_WORKSPACE/dist/media-assistant-macos-$TARGET_ARCH-ffmpeg.zip" .)
+          (cd "$components/deno" && zip -qry "$GITHUB_WORKSPACE/dist/media-assistant-macos-$TARGET_ARCH-deno.zip" .)
+          file "$version_root/engine/85数字多媒体下载助手引擎"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos-${{ matrix.arch }}
+          path: |
+            dist/media-assistant-macos-${{ matrix.arch }}.dmg
+            dist/media-assistant-macos-${{ matrix.arch }}-engine.zip
+            dist/media-assistant-macos-${{ matrix.arch }}-webui.zip
+            dist/media-assistant-macos-${{ matrix.arch }}-yt-dlp.zip
+            dist/media-assistant-macos-${{ matrix.arch }}-ffmpeg.zip
+            dist/media-assistant-macos-${{ matrix.arch }}-deno.zip
+          if-no-files-found: error
+
+  release:
+    needs: [windows-build, macos-build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e webui/engine
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+      - name: 生成发布说明
+        env:
+          VERSION: "${{ github.ref_name }}"
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          version = os.environ["VERSION"].removeprefix("v")
+          tag = os.environ["VERSION"]
+          repository = os.environ["GITHUB_REPOSITORY"]
+          base = "https://github.com/" + repository + "/releases/download/" + tag + "/"
+          published = subprocess.check_output(["git", "show", "-s", "--format=%cI", os.environ["GITHUB_SHA"]], text=True).strip()
+          artifacts = []
+          for os_name, arch in (("windows", "x64"), ("macos", "arm64"), ("macos", "x64")):
+              prefix = "media-assistant-" + os_name + "-" + arch
+              for kind, component in (("engine", None), ("webui", None), ("component", "yt-dlp"), ("component", "ffmpeg"), ("component", "deno")):
+                  suffix = component or kind
+                  name = prefix + "-" + suffix + ".zip"
+                  item = {"path": "../../release-assets/" + name, "os": os_name, "arch": arch, "kind": kind, "url": base + name, "mirrors": [], "restartRequired": kind in {"engine", "webui"}}
+                  if component:
+                      item.update({"componentName": component, "minimumEngineVersion": "1.2.0", "maximumEngineVersion": version})
+                  artifacts.append(item)
+          document = {"productVersion": version, "minimumVersion": "1.2.0", "notesZh": "本地网页界面、引擎与下载组件的稳定更新。", "publishedAt": published, "artifacts": artifacts}
+          Path("build/release/release-spec.json").write_text(json.dumps(document, ensure_ascii=False, indent=2), encoding="utf-8")
+          PY
+      - name: 签名所有更新文件
+        env:
+          MEDIA_ASSISTANT_RELEASE_PRIVATE_KEY: "${{ secrets.MEDIA_ASSISTANT_RELEASE_PRIVATE_KEY }}"
+          EXPECTED_PUBLIC_KEY: "${{ vars.MEDIA_ASSISTANT_RELEASE_PUBLIC_KEY }}"
+          PYTHONPATH: webui/engine/src
+        run: |
+          test -n "$MEDIA_ASSISTANT_RELEASE_PRIVATE_KEY" || { echo "缺少发布私钥。" >&2; exit 2; }
+          python build/release/new_update_manifest.py --spec build/release/release-spec.json --output-dir release-assets
+          test "$(tr -d '\r\n' < release-assets/update-public-key.txt)" = "$EXPECTED_PUBLIC_KEY"
+      - name: 先发布安装包和更新文件
+        env:
+          GH_TOKEN: "${{ github.token }}"
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "85数字多媒体下载助手 ${GITHUB_REF_NAME#v}" --notes "一次安装，本地运行，后续自动更新。"
+          find release-assets -maxdepth 1 -type f ! -name 'update-manifest.json' ! -name 'update-manifest.sig' ! -name 'update-public-key.txt' -print0 | xargs -0 gh release upload "$GITHUB_REF_NAME" --clobber
+      - name: 最后发布签名清单
+        env:
+          GH_TOKEN: "${{ github.token }}"
+        run: gh release upload "$GITHUB_REF_NAME" release-assets/update-manifest.json release-assets/update-manifest.sig release-assets/update-public-key.txt --clobber
+
+  pages:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: "${{ steps.deployment.outputs.page_url }}"
+    steps:
+      - uses: actions/checkout@v6
+      - name: 写入当前 GitHub 仓库地址
+        run: python -c "from pathlib import Path; p=Path('distribution/index.html'); p.write_text(p.read_text(encoding='utf-8').replace('OWNER/REPOSITORY', '$GITHUB_REPOSITORY'), encoding='utf-8')"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: distribution
+      - name: 发布统一下载页
+        id: deployment
+        uses: actions/deploy-pages@v4
