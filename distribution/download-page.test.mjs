@@ -38,3 +38,15 @@ assert.match(html, /id="repair-tool"/)
 assert.match(html, /启动或修复本地引擎/)
 assert.doesNotMatch(html, /media-assistant-macos-x64\.dmg/)
 assert.doesNotMatch(html, /macOS · Intel/)
+assert.match(
+  html,
+  /id="recommended"[^>]+href="https:\/\/github\.com\/OWNER\/REPOSITORY\/releases\/latest\/download\/media-assistant-windows-x64-setup\.exe"/,
+)
+assert.match(
+  html,
+  /href="https:\/\/github\.com\/OWNER\/REPOSITORY\/releases\/latest\/download\/media-assistant-windows-x64-setup\.exe"[^>]+data-asset="media-assistant-windows-x64-setup\.exe"/,
+)
+assert.match(
+  html,
+  /href="https:\/\/github\.com\/OWNER\/REPOSITORY\/releases\/latest\/download\/media-assistant-macos-arm64\.dmg"[^>]+data-asset="media-assistant-macos-arm64\.dmg"/,
+)
