@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-repository="OWNER/REPOSITORY">
+<html lang="zh-CN" data-repository="OWNER/REPOSITORY" data-release-tag="RELEASE_TAG">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -30,7 +30,7 @@
       <p class="lead">识别、预览、选择与保存都由当前电脑完成。程序不会上传你的媒体、登录信息或下载记录，也不需要付费云服务器。</p>
       <div class="actions">
         <a id="open-tool" class="button" href="http://127.0.0.1:8515/">打开网页版工具</a>
-        <a id="recommended" class="button secondary" href="https://github.com/OWNER/REPOSITORY/releases/latest/download/media-assistant-windows-x64-setup.exe">下载 Windows 版</a>
+        <a id="recommended" class="button secondary" href="https://github.com/OWNER/REPOSITORY/releases/download/RELEASE_TAG/media-assistant-windows-x64-setup.exe">下载 Windows 版</a>
       </div>
       <p class="hint" id="system-hint">已安装可直接打开；每台电脑只需首次安装一次本地引擎</p>
       <p class="recovery">网页显示“拒绝连接”？返回这里，点击<a id="repair-tool" href="mediaassistant85://open">“启动或修复本地引擎”</a>。</p>
@@ -42,8 +42,8 @@
       <section class="manual">
         <div><h2>手动选择系统</h2><p>macOS 版本适用于配备 Apple 芯片的 Mac。</p></div>
         <div class="buttons">
-          <a class="button secondary" href="https://github.com/OWNER/REPOSITORY/releases/latest/download/media-assistant-windows-x64-setup.exe" data-asset="media-assistant-windows-x64-setup.exe">Windows 10/11</a>
-          <a class="button secondary" href="https://github.com/OWNER/REPOSITORY/releases/latest/download/media-assistant-macos-arm64.dmg" data-asset="media-assistant-macos-arm64.dmg">macOS · M 系列</a>
+          <a class="button secondary" href="https://github.com/OWNER/REPOSITORY/releases/download/RELEASE_TAG/media-assistant-windows-x64-setup.exe" data-asset="media-assistant-windows-x64-setup.exe">Windows 10/11</a>
+          <a class="button secondary" href="https://github.com/OWNER/REPOSITORY/releases/download/RELEASE_TAG/media-assistant-macos-arm64.dmg" data-asset="media-assistant-macos-arm64.dmg">macOS · M 系列</a>
         </div>
       </section>
       <details>
@@ -60,7 +60,8 @@
   <script type="module">
     import { buildEntryActions, selectDownload } from './download-select.mjs'
     const repository = document.documentElement.dataset.repository
-    const releaseRoot = 'https://github.com/' + repository + '/releases/latest/download/'
+    const releaseTag = document.documentElement.dataset.releaseTag
+    const releaseRoot = 'https://github.com/' + repository + '/releases/download/' + encodeURIComponent(releaseTag) + '/'
     const toUrl = asset => releaseRoot + encodeURIComponent(asset)
     document.querySelectorAll('[data-asset]').forEach(link => {
       link.href = toUrl(link.dataset.asset)
@@ -71,6 +72,7 @@
     })
     const entry = buildEntryActions({
       repository,
+      releaseTag,
       platform: navigator.platform || '',
       userAgent: navigator.userAgent || '',
     })

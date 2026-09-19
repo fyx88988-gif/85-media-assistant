@@ -8,12 +8,17 @@ assert.equal(
 )
 
 assert.deepEqual(
-  buildEntryActions({ repository: 'fyx88988-gif/85-media-assistant', platform: 'Win32', userAgent: 'Windows NT 10.0' }),
+  buildEntryActions({
+    repository: 'fyx88988-gif/85-media-assistant',
+    releaseTag: 'v1.2.7',
+    platform: 'Win32',
+    userAgent: 'Windows NT 10.0',
+  }),
   {
     openUrl: 'http://127.0.0.1:8515/',
     repairUrl: 'mediaassistant85://open',
     downloadTitle: '下载 Windows 版',
-    downloadUrl: 'https://github.com/fyx88988-gif/85-media-assistant/releases/latest/download/media-assistant-windows-x64-setup.exe',
+    downloadUrl: 'https://github.com/fyx88988-gif/85-media-assistant/releases/download/v1.2.7/media-assistant-windows-x64-setup.exe',
   },
 )
 assert.equal(
@@ -35,18 +40,19 @@ assert.match(html, /不创建桌面图标/)
 assert.match(html, /http:\/\/127\.0\.0\.1:8515/)
 assert.match(html, /id="open-tool"/)
 assert.match(html, /id="repair-tool"/)
+assert.match(html, /data-release-tag="RELEASE_TAG"/)
 assert.match(html, /启动或修复本地引擎/)
 assert.doesNotMatch(html, /media-assistant-macos-x64\.dmg/)
 assert.doesNotMatch(html, /macOS · Intel/)
 assert.match(
   html,
-  /id="recommended"[^>]+href="https:\/\/github\.com\/OWNER\/REPOSITORY\/releases\/latest\/download\/media-assistant-windows-x64-setup\.exe"/,
+  /id="recommended"[^>]+href="https:\/\/github\.com\/OWNER\/REPOSITORY\/releases\/download\/RELEASE_TAG\/media-assistant-windows-x64-setup\.exe"/,
 )
 assert.match(
   html,
-  /href="https:\/\/github\.com\/OWNER\/REPOSITORY\/releases\/latest\/download\/media-assistant-windows-x64-setup\.exe"[^>]+data-asset="media-assistant-windows-x64-setup\.exe"/,
+  /href="https:\/\/github\.com\/OWNER\/REPOSITORY\/releases\/download\/RELEASE_TAG\/media-assistant-windows-x64-setup\.exe"[^>]+data-asset="media-assistant-windows-x64-setup\.exe"/,
 )
 assert.match(
   html,
-  /href="https:\/\/github\.com\/OWNER\/REPOSITORY\/releases\/latest\/download\/media-assistant-macos-arm64\.dmg"[^>]+data-asset="media-assistant-macos-arm64\.dmg"/,
+  /href="https:\/\/github\.com\/OWNER\/REPOSITORY\/releases\/download\/RELEASE_TAG\/media-assistant-macos-arm64\.dmg"[^>]+data-asset="media-assistant-macos-arm64\.dmg"/,
 )

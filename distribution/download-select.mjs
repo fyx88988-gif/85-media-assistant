@@ -17,9 +17,9 @@ export function selectDownload({ platform = '', userAgent = '' } = {}) {
   return { target: 'unsupported', title: '当前系统暂不支持', asset: '' }
 }
 
-export function buildEntryActions({ repository, platform = '', userAgent = '' }) {
+export function buildEntryActions({ repository, releaseTag = 'latest', platform = '', userAgent = '' }) {
   const selected = selectDownload({ platform, userAgent })
-  const releaseRoot = `https://github.com/${repository}/releases/latest/download/`
+  const releaseRoot = `https://github.com/${repository}/releases/download/${encodeURIComponent(releaseTag)}/`
   return {
     openUrl: 'http://127.0.0.1:8515/',
     repairUrl: 'mediaassistant85://open',

@@ -238,8 +238,8 @@ jobs:
       url: "${{ steps.deployment.outputs.page_url }}"
     steps:
       - uses: actions/checkout@v6
-      - name: 写入当前 GitHub 仓库地址
-        run: python -c "from pathlib import Path; p=Path('distribution/index.html'); p.write_text(p.read_text(encoding='utf-8').replace('OWNER/REPOSITORY', '$GITHUB_REPOSITORY'), encoding='utf-8')"
+      - name: 写入当前 GitHub 仓库与正式版本地址
+        run: python -c "from pathlib import Path; p=Path('distribution/index.html'); p.write_text(p.read_text(encoding='utf-8').replace('OWNER/REPOSITORY', '$GITHUB_REPOSITORY').replace('RELEASE_TAG', '$GITHUB_REF_NAME'), encoding='utf-8')"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
