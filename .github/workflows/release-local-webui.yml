@@ -104,7 +104,6 @@ jobs:
       matrix:
         include:
           - { arch: arm64, runner: macos-15 }
-          - { arch: x64, runner: macos-15-intel }
     runs-on: "${{ matrix.runner }}"
     steps:
       - uses: actions/checkout@v6
@@ -127,8 +126,7 @@ jobs:
           runtime="$PWD/.build/runtime/macos-${{ matrix.arch }}"
           mkdir -p "$runtime/yt-dlp" "$runtime/ffmpeg/lib" "$runtime/deno"
           curl -fL "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos" -o "$runtime/yt-dlp/yt-dlp"
-          if [[ "${{ matrix.arch }}" == "arm64" ]]; then deno_arch="aarch64"; else deno_arch="x86_64"; fi
-          curl -fL "https://github.com/denoland/deno/releases/latest/download/deno-$deno_arch-apple-darwin.zip" -o "$runtime/deno.zip"
+          curl -fL "https://github.com/denoland/deno/releases/latest/download/deno-aarch64-apple-darwin.zip" -o "$runtime/deno.zip"
           unzip -q "$runtime/deno.zip" -d "$runtime/deno"
           cp "$(command -v ffmpeg)" "$runtime/ffmpeg/ffmpeg"
           cp "$(command -v ffprobe)" "$runtime/ffmpeg/ffprobe"
@@ -196,7 +194,7 @@ jobs:
           base = "https://github.com/" + repository + "/releases/download/" + tag + "/"
           published = subprocess.check_output(["git", "show", "-s", "--format=%cI", os.environ["GITHUB_SHA"]], text=True).strip()
           artifacts = []
-          for os_name, arch in (("windows", "x64"), ("macos", "arm64"), ("macos", "x64")):
+          for os_name, arch in (("windows", "x64"), ("macos", "arm64")):
               prefix = "media-assistant-" + os_name + "-" + arch
               for kind, component in (("engine", None), ("webui", None), ("component", "yt-dlp"), ("component", "ffmpeg"), ("component", "deno")):
                   suffix = component or kind

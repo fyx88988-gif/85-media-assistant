@@ -38,7 +38,6 @@ class ReleaseArtifact(BaseModel):
         if (self.os, self.arch) not in {
             ("windows", "x64"),
             ("macos", "arm64"),
-            ("macos", "x64"),
         }:
             raise ValueError("更新清单包含不支持的系统与架构组合。")
         component_values = (

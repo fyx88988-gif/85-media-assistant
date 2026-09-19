@@ -110,3 +110,20 @@ def test_macos_build_scripts_use_unix_line_endings() -> None:
 
     for script in scripts:
         assert b"\r\n" not in script.read_bytes(), f"{script} must use LF line endings"
+
+
+def test_release_pipeline_only_builds_apple_silicon_macos() -> None:
+    repository_root = Path(__file__).resolve().parents[3]
+    workflow = (
+        repository_root / ".github" / "workflows" / "release-local-webui.yml"
+    ).read_text(encoding="utf-8")
+    build_script = (
+        repository_root / "build" / "Build-LocalWebUI-macOS.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "macos-15-intel" not in workflow
+    assert "{ arch: x64" not in workflow
+    assert '("macos", "x64")' not in workflow
+    assert "arm64) ;;" in build_script
+    assert "arm64|x64" not in build_script
+    assert 'target_arch="x64"' not in build_script

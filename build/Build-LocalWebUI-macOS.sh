@@ -7,17 +7,12 @@ engine="$project_root/webui/engine"
 version="${VERSION:?请通过 VERSION 指定版本号，例如 1.2.0}"
 target_arch="${TARGET_ARCH:-$(uname -m)}"
 case "$target_arch" in
-  arm64|x64) ;;
-  x86_64) target_arch="x64" ;;
-  *) echo "不支持的 macOS 架构：$target_arch" >&2; exit 2 ;;
+  arm64) ;;
+  *) echo "仅支持 Apple Silicon (arm64)，当前架构：$target_arch" >&2; exit 2 ;;
 esac
 
 host_arch="$(uname -m)"
-if [[ "$target_arch" == "x64" && "$host_arch" != "x86_64" ]]; then
-  echo "x64 安装包必须在 Intel macOS 构建机上生成。" >&2
-  exit 2
-fi
-if [[ "$target_arch" == "arm64" && "$host_arch" != "arm64" ]]; then
+if [[ "$host_arch" != "arm64" ]]; then
   echo "arm64 安装包必须在 Apple Silicon 构建机上生成。" >&2
   exit 2
 fi

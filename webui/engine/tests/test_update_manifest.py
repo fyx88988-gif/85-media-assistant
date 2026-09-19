@@ -103,6 +103,23 @@ def test_manifest_rejects_unsupported_windows_arm64_target() -> None:
         )
 
 
+def test_manifest_rejects_retired_macos_x64_target() -> None:
+    unsupported = _artifact("engine")
+    unsupported.update(os="macos", arch="x64")
+
+    with pytest.raises(ValidationError, match="系统与架构组合"):
+        UpdateManifest.model_validate(
+            {
+                "schemaVersion": 1,
+                "productVersion": "1.3.0",
+                "publishedAt": "2026-09-19T00:00:00Z",
+                "minimumVersion": "1.2.0",
+                "notesZh": "仅支持 Apple Silicon",
+                "artifacts": [unsupported],
+            }
+        )
+
+
 def _artifact(kind: str, *, component_name: str | None = None) -> dict[str, object]:
     value: dict[str, object] = {
         "os": "windows",

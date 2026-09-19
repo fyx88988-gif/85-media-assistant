@@ -31,7 +31,6 @@ node distribution/download-page.test.mjs
 
 - Windows x64 单一安装程序
 - macOS Apple Silicon DMG
-- macOS Intel DMG
 - 网页、本地引擎与内置组件的签名更新文件
 - GitHub Pages 统一下载页
 
