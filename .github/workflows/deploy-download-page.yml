@@ -1,0 +1,36 @@
+name: 发布统一下载页
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "distribution/**"
+      - ".github/workflows/deploy-download-page.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: "${{ steps.deployment.outputs.page_url }}"
+    steps:
+      - uses: actions/checkout@v6
+      - name: 写入当前 GitHub 仓库地址
+        run: python -c "from pathlib import Path; p=Path('distribution/index.html'); p.write_text(p.read_text(encoding='utf-8').replace('OWNER/REPOSITORY', '$GITHUB_REPOSITORY'), encoding='utf-8')"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: distribution
+      - name: 发布统一下载页
+        id: deployment
+        uses: actions/deploy-pages@v4
