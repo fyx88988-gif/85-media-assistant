@@ -13,6 +13,7 @@ from .config import PRODUCT_ID
 from .install_layout import InstallLayout
 from .launcher import AppInstanceLock, build_local_url, probe_existing_instance
 from .processes import start_detached_process
+from .supervisor import EngineSupervisor, SupervisorPolicy, SupervisorStateStore
 from .updater import read_pointer
 
 
@@ -187,22 +188,28 @@ def supervise_engine(
     starter: Callable[[list[str]], Any] = start_detached_process,
     waiter: Callable[[], bool] = wait_until_ready,
     sleeper: Callable[[float], None] = time.sleep,
-    poll_interval: float = 2.0,
+    poll_interval: float | None = None,
     max_cycles: int | None = None,
 ) -> None:
     """Keep the local engine available for the current login session."""
 
-    cycles = 0
-    while max_cycles is None or cycles < max_cycles:
-        ensure_engine_running(
-            layout,
-            probe=probe,
-            starter=starter,
-            waiter=waiter,
-        )
-        cycles += 1
-        if max_cycles is None or cycles < max_cycles:
-            sleeper(poll_interval)
+    health_check = probe or (
+        lambda: probe_existing_instance("http://127.0.0.1:8515", PRODUCT_ID)
+    )
+    policy = SupervisorPolicy(
+        idle_poll_seconds=(15.0 if poll_interval is None else poll_interval)
+    )
+    supervisor = EngineSupervisor(
+        policy=policy,
+        state_store=SupervisorStateStore(
+            layout.data_root / "supervisor-state.json"
+        ),
+        probe=health_check,
+        command=lambda: current_engine_command(layout),
+        starter=starter,
+        waiter=waiter,
+    )
+    supervisor.run(sleeper=sleeper, max_cycles=max_cycles)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

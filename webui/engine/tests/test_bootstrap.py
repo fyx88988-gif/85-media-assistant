@@ -136,6 +136,24 @@ def test_background_supervisor_restarts_engine_after_a_later_health_failure(
     assert started == [current_engine_command(layout), current_engine_command(layout)]
 
 
+def test_background_supervisor_uses_fifteen_second_idle_poll(
+    tmp_path: Path,
+) -> None:
+    layout = InstallLayout.for_root(tmp_path / "app", tmp_path / "data")
+    sleeps: list[float] = []
+
+    supervise_engine(
+        layout,
+        probe=lambda: True,
+        starter=lambda _: None,
+        waiter=lambda: True,
+        sleeper=sleeps.append,
+        max_cycles=2,
+    )
+
+    assert sleeps == [15.0]
+
+
 def test_bootstrap_accepts_the_shared_browser_launch_protocol() -> None:
     arguments = parse_args(["mediaassistant85://open"])
 
